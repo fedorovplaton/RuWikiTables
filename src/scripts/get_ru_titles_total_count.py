@@ -7,12 +7,12 @@ import pandas as pd
 # Заходит на сайт со статистикой, наход таблицу со статистикой (Она первая)
 # Находим там строку про русскую вики
 # И берет оттуда просто число
-def get_ru_titles_total_count():
-    response = requests.get("https://ru.wikipedia.org/wiki/Википедия:Список_Википедий")
-    table_class = "wikitable"
+def get_ru_titles_total_count() -> int:
+    response = requests.get("https://ru.wikipedia.org/wiki/Служебная:Статистика")
     soup = BeautifulSoup(response.text, 'html.parser')
     indiatable = soup.find('table', {'class': "wikitable"})
     df = pd.read_html(str(indiatable))
     df = pd.DataFrame(df[0])
+    value: str = ''.join(df.loc[1]['Статистика по страницам.1'].split())
 
-    return df.loc[df['Код'] == 'ru']['Статей'].values[0]
+    return int(value)

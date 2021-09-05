@@ -2,7 +2,12 @@
     Crawler model
 """
 import os
+import time
+from typing import List
+
 import requests
+
+from src.types.TitlesCrawlerStatus import TitlesCrawlerStatus
 from src.types.TitlesDictionary import TitlesDictionary
 from threading import Thread
 
@@ -29,42 +34,67 @@ class TitlesCrawler:
     Класс для краулуера, который в отдельном потоке будет выкачивать названия страниц вики
     """
     titles: TitlesDictionary
-    is_loading: bool = False
+    status: TitlesCrawlerStatus
     download_thread: Thread
+
+    average_speed: float = 0.0  # speed for one title
+    downloaded_in_row: int = 0
+    times_in_row: List[float] = []
+
+    __AP_CONTINUE_FINISHED_MARKER__ = '__AP_CONTINUE_FINISHED_MARKER__'
 
     def __init__(self):
         self.download_thread = Thread(target=self.__downloading)
         self.__load()
+        is_finished = False
+        is_loading = False
+
+        if self.titles.ap_continue == self.__AP_CONTINUE_FINISHED_MARKER__:
+            is_finished = True
+
+        self.status = TitlesCrawlerStatus(is_loading, is_finished)
 
     def __downloading(self):
-        """
-        Самый первый знак(в топологической сортировки) с которого могут начинаться страницы - это "!".
-        apcontinue = '!'
-        Делаем запрос в алфавитный казатель https://ru.wikipedia.org/wiki/Википедия:Алфавитный_указатель
-        И получаем назавания первых 500 страниц
-        Также в ответе получаем следующий указатель, начиная с которого пойдут следующие 500 страниц
-        и т.д
-        Рааботает где-то 40 минут
-        """
-        while self.is_loading:
-            # Делаем запрос
+        iteration = 1
+
+        while self.status.is_loading:
+            t1 = time.time()
             ap_continue = self.titles.ap_continue
             response = requests.get(get_link_by_ap_continue(ap_continue))
             data = response.json()
-            # Получаем следующий алфавитный указатель и сохраняем его
-            self.titles.ap_continue = data["continue"]["apcontinue"]
-            # Получем массив из 500 страниц
-            all_pages = data["query"]["allpages"]
 
-            # Сохранем названия страниц в словрь со знаечением False, ибо это про название,
-            # саму страницу мы еще не выкачали
+            try:
+                ap_continue = data["continue"]["apcontinue"]
+            except Exception as error:
+                self.titles.ap_continue = self.__AP_CONTINUE_FINISHED_MARKER__
+                self.status.is_loading = False
+                self.status.is_finished = True
+                self.__save()
+                break
+
+            self.titles.ap_continue = ap_continue
+            print(self.titles.ap_continue)
+
+            try:
+                all_pages = data["query"]["allpages"]
+            except Exception as error:
+                print('DFKLJFKDSFJDSKFJDSJFLDSJFDLSFJDSJK')
+                raise error
+
             titles = self.titles.titles
 
             for page in all_pages:
                 titles[page["title"]] = False
 
-            self.__save()
-            print(len(titles))
+            iteration += 1
+
+            if iteration % 20 == 0:
+                self.__save()
+
+            t2 = time.time()
+
+            self.times_in_row.append(t2 - t1)
+            self.downloaded_in_row += len(all_pages)
 
     def __save(self, filename: str = 'titles'):
         dump(self.titles, filename)
@@ -77,16 +107,38 @@ class TitlesCrawler:
 
     def start_download(self):
         self.__load()
-        self.is_loading = True
-        self.download_thread.start()
+
+        if self.status.is_loading:
+            return
+
+        if self.titles.ap_continue != self.__AP_CONTINUE_FINISHED_MARKER__:
+            self.status.is_loading = True
+            self.download_thread.start()
+        else:
+            self.status.is_finished = True
 
     def stop_download(self):
-        self.is_loading = False
-        self.download_thread = Thread(target=self.__downloading)
-        self.__save()
+        if not self.status.is_loading:
+            return
 
-    def get_downloaded_titles__count(self):
+        self.status.is_loading = False
+        self.download_thread = Thread(target=self.__downloading)
+        self.times_in_row = []
+        self.downloaded_in_row = 0
+
+    def get_downloaded_titles__count(self) -> int:
         return len(self.titles.titles)
 
-    def get_approximate_time(self):
-        return "0 days 00:00:00"
+    def get_approximate_time(self, total_count: int) -> float:
+        if self.status.is_finished:
+            return 0.0
+
+        if len(self.times_in_row) == 0:
+            return 9999999.999999
+
+        t = sum(self.times_in_row)
+        count = self.downloaded_in_row
+        speed = t / count
+        to_download = total_count - self.get_downloaded_titles__count()
+
+        return speed * to_download

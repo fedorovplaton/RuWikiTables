@@ -1,14 +1,16 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
 from src.model.TitlesCrawler import TitlesCrawler
 from src.scripts.get_ru_titles_total_count import get_ru_titles_total_count
 
 # app - simplest Flask server, app.run() to run server
+from src.utils.io import hook_up, dump
+
 app = Flask(__name__)
 CORS(app)
 titles_crawler = TitlesCrawler()
-ru_titles_total_count = get_ru_titles_total_count()
+ru_titles_total_count: int = get_ru_titles_total_count()
 
 
 # Прописываем пути в аннотации и пишем код
@@ -27,7 +29,16 @@ def titles_count():
     Выводит сколько уже названий страниц скачали
     :return:
     """
-    return str(titles_crawler.get_downloaded_titles__count())
+
+    _status = titles_crawler.status
+
+    return jsonify({
+        "value": titles_crawler.get_downloaded_titles__count(),
+        "status": {
+            "isLoading": _status.is_loading,
+            "isFinished": _status.is_finished
+        }
+    })
 
 
 @app.route("/total_titles_count")
@@ -36,7 +47,16 @@ def total_titles_count():
     Сколько всего страниц в вики
     :return:
     """
-    return str(ru_titles_total_count)
+
+    _status = titles_crawler.status
+
+    return jsonify({
+        "value": ru_titles_total_count,
+        "status": {
+            "isLoading": _status.is_loading,
+            "isFinished": _status.is_finished
+        }
+    })
 
 
 @app.route("/start")
@@ -47,7 +67,12 @@ def start():
     """
     titles_crawler.start_download()
 
-    return 'ok'
+    _status = titles_crawler.status
+
+    return jsonify({
+        "isLoading": _status.is_loading,
+        "isFinished": _status.is_finished
+    })
 
 
 @app.route("/stop")
@@ -57,8 +82,12 @@ def stop():
     :return:
     """
     titles_crawler.stop_download()
+    _status = titles_crawler.status
 
-    return 'ok'
+    return jsonify({
+        "isLoading": _status.is_loading,
+        "isFinished": _status.is_finished
+    })
 
 
 @app.route("/approximate_time")
@@ -68,8 +97,32 @@ def approximate_time():
     :return:
     """
 
-    return str(titles_crawler.get_approximate_time())
+    _status = titles_crawler.status
+
+    return jsonify({
+        "value": titles_crawler.get_approximate_time(ru_titles_total_count),
+        "status": {
+            "isLoading": _status.is_loading,
+            "isFinished": _status.is_finished
+        }
+    })
+
+
+@app.route("/status", methods=['GET'])
+def status():
+    """
+    Возвращает статус, идет ли сейчас загрузка и т.д, инициализация состояния на фронте при обновлении
+    :return:
+    """
+    _status = titles_crawler.status
+
+    return jsonify({
+        "isLoading": _status.is_loading,
+        "isFinished": _status.is_finished
+    })
 
 
 if __name__ == '__main__':
     app.run()
+
+    pass
