@@ -25,7 +25,7 @@ def parse(html_text: str) -> any:
                     title = html_table.find("caption").text
                 elif html_table.findPreviousSibling() and not html_table.findPreviousSibling().find('span', {'class': "mw-headline"}) is None:
                     title = html_table.findPreviousSibling().find('span', {'class': "mw-headline"}).text
-                else:
+                elif html_table.findPrevious("h2") and not html_table.findPrevious("h2").find('span', {'class': "mw-headline"}) is None:
                     title = html_table.findPrevious("h2").find('span', {'class': "mw-headline"}).text
                 tables.append(TableInfo(previous_context, after_context, table, title))
             except Exception as error:
