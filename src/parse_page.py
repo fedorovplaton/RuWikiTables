@@ -7,6 +7,11 @@ Todo:
 """
 
 import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+from src.model import PagesCrawler
+from src.types import TableInfo
 
 
 def parse(html_text: str) -> any:
@@ -17,9 +22,9 @@ def parse(html_text: str) -> any:
 
     print(html_text)
 
-    return True
-
 
 if __name__ == '__main__':
-    response = requests.get('https://ru.wikipedia.org/wiki/Премия_«Оскар»_за_лучший_фильм')
-    parse(response.text)
+    # response = requests.get('https://en.wikipedia.org/wiki/Wikipedia:Wikidata')
+    response = requests.get('https://en.wikipedia.org/wiki/Help:Table')
+    #parse(response.text)
+    crawler_parse = PagesCrawler.parse(response.text)
