@@ -1,6 +1,11 @@
+import multiprocessing
+import os
+import time
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 
+from src.model.PagesCrawler import PagesCrawler
 from src.model.TitlesCrawler import TitlesCrawler
 from src.scripts.get_ru_titles_total_count import get_ru_titles_total_count
 
@@ -122,7 +127,15 @@ def status():
     })
 
 
-if __name__ == '__main__':
-    app.run()
+def threadFunc(index):
+    print(f'index: {index}')
 
-    pass
+
+if __name__ == '__main__':
+    if not os.path.exists('data'):
+        os.mkdir('data')
+
+    # app.run()
+    pc = PagesCrawler()
+    pc.parsing_threads()
+

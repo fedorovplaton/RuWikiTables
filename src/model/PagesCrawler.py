@@ -1,66 +1,89 @@
+import math
+import sys
+
 from bs4 import BeautifulSoup
 import pandas as pd
+import os
+import threading
+import time
+from typing import Dict, List
+
+from src.types.Title import Title
+from src.types.TitlesDictionary import TitlesDictionary
+from src.utils.io import hook_up, dump_parsed_page
+from multiprocessing import Pool, Process
+from queue import Queue
+import requests
 
 from src.types.TableInfo import TableInfo
+from src.utils.links import get_ru_wiki_link
+import asyncio
 
-stop_tags = ["h2"]
+import aiohttp
 
-
-def find_context_after(words_count: int, html_table):
-    result = []
-    after = html_table.find_next_sibling()
-    while after and after.name not in stop_tags and len(result) < words_count:
-        result.extend(after.text.split())
-        after = after.find_next_sibling()
-
-    return ' '.join(result[:words_count])
-
-
-def find_context_previous(words_count: int, html_table):
-    result = []
-    previous = html_table.findPreviousSibling()
-    while previous and previous.name not in stop_tags and len(result) < words_count:
-        result = previous.text.split() + result
-        previous = previous.findPreviousSibling()
-
-    return ' '.join(result[:words_count])
-
-
-def parse(html_text: str) -> any:
-    """
-    :param html_text: html code of wiki page
-    :return: list of TableInfo
-    """
-
-    tables = []
-    try:
-        soup = BeautifulSoup(html_text, 'html.parser')
-        indiatable = soup.findAll('table', {'class': "wikitable"})
-        for html_table in indiatable:
-            table = pd.read_html(str(html_table))[0]
-            previous_context = ""
-            after_context = ""
-            title = ""
-            try:
-                previous_context = find_context_previous(100, html_table)
-                after_context = find_context_after(100, html_table)
-                caption = html_table.find("caption")
-                if not caption is None:
-                    title = html_table.find("caption").text
-                elif html_table.findPreviousSibling() and not html_table.findPreviousSibling().find('span', {
-                    'class': "mw-headline"}) is None:
-                    title = html_table.findPreviousSibling().find('span', {'class': "mw-headline"}).text
-                elif html_table.findPrevious("h2") and not html_table.findPrevious("h2").find('span', {
-                    'class': "mw-headline"}) is None:
-                    title = html_table.findPrevious("h2").find('span', {'class': "mw-headline"}).text
-                tables.append(TableInfo(previous_context, after_context, table, title))
-            except Exception as error:
-                continue
-        return tables
-    except Exception as error:
-        return tables
+from src.utils.parse import parse_wiki_page
 
 
 class PagesCrawler:
+    titles_dict: TitlesDictionary = {}
+    q: Queue = Queue()  # Queue[Title]
+    pages_parsed: Dict[str, bool] = {}
+
     def __init__(self):
+        self.__load_titles_dict()
         pass
+
+    def __load_titles_dict(self, filename: str = 'pages_parsed'):
+        if os.path.exists(filename):
+            self.titles_dict = hook_up(filename)
+        elif os.path.exists('titles'):
+            self.titles_dict = hook_up('titles')
+
+    async def __worker(self, session, title: Title):
+        url = get_ru_wiki_link(title.title)
+
+        async with session.get(url) as resp:
+            html_text = await resp.text()
+            table_info_list = parse_wiki_page(html_text)
+            dump_parsed_page(table_info_list, title)
+            self.pages_parsed[title.page_id] = True
+
+    async def __async_init(self, thread_id: int, max_tasks_per_thread: int):
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+
+            while not self.q.empty() and len(tasks) <= max_tasks_per_thread:
+                title: Title = self.q.get()
+                task = asyncio.create_task(self.__worker(session, title))
+                tasks.append(task)
+
+            print(f'{len(tasks)} tasks created for {thread_id} thread')
+
+            await asyncio.gather(*tasks)
+
+    def __thread_init(self, thread_id: int, max_tasks_per_thread: int):
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        asyncio.run(self.__async_init(thread_id, max_tasks_per_thread))
+
+    def parsing_threads(self, pages_count: int, threads_count: int = 4):
+        i = 0
+
+        for title in self.titles_dict.titles:
+            if i > pages_count:
+                break
+
+            i += 1
+            self.q.put(self.titles_dict.titles[title])
+
+        tasks = []
+
+        pages_at_thread = math.ceil(pages_count / threads_count)
+
+        for j in range(threads_count):
+            tasks.append(threading.Thread(target=self.__thread_init, args=(j, pages_at_thread)))
+
+        for task in tasks:
+            task.start()
+
+        for task in tasks:
+            task.join()

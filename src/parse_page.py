@@ -19,7 +19,6 @@ def parse(html_text: str) -> any:
     :param html_text: html code of wiki page
     :return: ?
     """
-
     print(html_text)
 
 

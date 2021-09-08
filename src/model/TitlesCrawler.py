@@ -7,6 +7,7 @@ from typing import List
 
 import requests
 
+from src.types.Title import Title
 from src.types.TitlesCrawlerStatus import TitlesCrawlerStatus
 from src.types.TitlesDictionary import TitlesDictionary
 from threading import Thread
@@ -15,29 +16,15 @@ from threading import Thread
 # Она инициализируется с самого начала, чтобы показывать пользователям,
 # сколько еще названий страниц нужно выкачать
 from src.utils.io import dump, hook_up
-
-total_titles = None
-
-
-def get_link_by_ap_continue(ap_continue: str) -> str:
-    """
-    Генератор ссылка для получения 500 названий, начиная со слова ap_continue
-    :param ap_continue:
-    :return:
-    """
-    return 'https://ru.wikipedia.org/w/api.php?action=query&format=json&list=allpages&' + \
-           f'apcontinue={ap_continue}&apnamespace=0&apfilterredir=all&aplimit=500&apdir=ascending'
+from src.utils.links import get_link_by_ap_continue
 
 
 class TitlesCrawler:
-    """
-    Класс для краулуера, который в отдельном потоке будет выкачивать названия страниц вики
-    """
     titles: TitlesDictionary
-    status: TitlesCrawlerStatus
+    status: TitlesCrawlerStatus = TitlesCrawlerStatus()
     download_thread: Thread
 
-    average_speed: float = 0.0  # speed for one title
+    average_speed: float = 0.0
     downloaded_in_row: int = 0
     times_in_row: List[float] = []
 
@@ -46,13 +33,9 @@ class TitlesCrawler:
     def __init__(self):
         self.download_thread = Thread(target=self.__downloading)
         self.__load()
-        is_finished = False
-        is_loading = False
 
         if self.titles.ap_continue == self.__AP_CONTINUE_FINISHED_MARKER__:
-            is_finished = True
-
-        self.status = TitlesCrawlerStatus(is_loading, is_finished)
+            self.status.is_finished = True
 
     def __downloading(self):
         iteration = 1
@@ -70,21 +53,21 @@ class TitlesCrawler:
                 self.status.is_loading = False
                 self.status.is_finished = True
                 self.__save()
+                print(error)
                 break
 
             self.titles.ap_continue = ap_continue
-            print(self.titles.ap_continue)
 
             try:
                 all_pages = data["query"]["allpages"]
             except Exception as error:
-                print('DFKLJFKDSFJDSKFJDSJFLDSJFDLSFJDSJK')
-                raise error
-
-            titles = self.titles.titles
+                print(error)
+                break
 
             for page in all_pages:
-                titles[page["title"]] = False
+                title = page["title"]
+                page_id = page["pageid"]
+                self.titles.titles[page_id] = Title(title, str(page_id))
 
             iteration += 1
 
@@ -106,10 +89,10 @@ class TitlesCrawler:
             self.titles = TitlesDictionary()
 
     def start_download(self):
-        self.__load()
-
         if self.status.is_loading:
             return
+
+        self.__load()
 
         if self.titles.ap_continue != self.__AP_CONTINUE_FINISHED_MARKER__:
             self.status.is_loading = True
