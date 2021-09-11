@@ -130,3 +130,4 @@ dmypy.json
 /src/titles
 /src/titles2
 /src/data/
+/src/only_pages_parsed

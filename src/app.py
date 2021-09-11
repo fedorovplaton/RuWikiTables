@@ -15,6 +15,7 @@ from src.utils.io import hook_up, dump
 app = Flask(__name__)
 CORS(app)
 titles_crawler = TitlesCrawler()
+pages_crawler = PagesCrawler()
 ru_titles_total_count: int = get_ru_titles_total_count()
 
 
@@ -127,15 +128,41 @@ def status():
     })
 
 
-def threadFunc(index):
-    print(f'index: {index}')
+@app.route("/pages/start")
+def pages_start():
+    """
+        Doc
+    """
+    pages_crawler.start()
+
+    return 'start parsing...'
+
+
+@app.route("/pages/stop")
+def pages_stop():
+    """
+        Doc
+    """
+    pages_crawler.stop()
+
+    return 'start stopping...'
+
+
+@app.route("/pages/status")
+def pages_status():
+    """
+        Doc
+    """
+
+    return jsonify({
+        "isLoading": pages_crawler.is_loading,
+        "isFinished": pages_crawler.is_finished,
+        "isStoppingTasks": pages_crawler.is_stopping_tasks
+    })
 
 
 if __name__ == '__main__':
     if not os.path.exists('data'):
         os.mkdir('data')
 
-    # app.run()
-    pc = PagesCrawler()
-    pc.parsing_threads()
-
+    app.run()

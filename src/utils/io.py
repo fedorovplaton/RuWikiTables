@@ -48,25 +48,30 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
     if len(table_info_list) == 0:
         return
 
-    tables_directory = f'{page_directory.title()}/tables'
-
-    if not os.path.exists(tables_directory):
-        os.mkdir(tables_directory)
-
     for index in range(len(table_info_list)):
         table_info = table_info_list[index]
-        path = f'{tables_directory}/tables_{index}'
 
-        if not os.path.exists(path):
-            os.mkdir(path)
+        table_info.table.to_csv(f'{page_directory}/table_{index}.csv', sep='|', index=False, encoding='utf-8')
 
-        table_info.table.to_json(f'{path}/table.json', indent=4)
+        columns = {}
+        for column_index in range(len(table_info.columns_info)):
+            column_info = table_info.columns_info[column_index]
+            columns[column_index] = {
+                "name": column_info.name,
+                "empty_count": column_info.empty_count,
+                "is_only_numbers": column_info.only_numbers
+            }
 
-        with open(f'{path}/meta.json', 'w+', encoding='utf-8') as f:
+        with open(f'{page_directory}/table_{index}_meta.json', 'w+', encoding='utf-8') as f:
             json.dump({
+                "page": {
+                    "title": title.title,
+                    "page_id": title.page_id
+                },
                 "title": table_info.title,
                 "after_context": table_info.after_context,
-                "previous_context": table_info.previous_context
+                "previous_context": table_info.previous_context,
+                "col_count": table_info.col_count,
+                "row_count": table_info.row_count,
+                "columns": columns
             }, f, indent=4)
-
-    pass

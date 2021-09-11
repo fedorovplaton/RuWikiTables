@@ -27,6 +27,7 @@ class TableInfo:
             self.columns_info.append(
                 ColumnInfo(
                     column,
-                    table[column].isnull().sum(),
-                    pd.to_numeric(table[column], errors='coerce').notnull().all()
+                    int(table[column].isnull().sum()),
+                    # ToDo: Error: Object of type bool_ is not JSON serializable while dump to json file
+                    bool(pd.to_numeric(table[column], errors='coerce').notnull().all())
                 ))
