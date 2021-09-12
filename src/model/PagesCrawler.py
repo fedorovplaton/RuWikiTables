@@ -50,7 +50,7 @@ class PagesCrawler:
                 if resp.status == 429:
                     raise Exception(f'{resp.status} Too many requests')
                 if resp.status != 200 and resp.status != 304:
-                    print(f'{resp.status} Unknown case')
+                    print(f'{resp.status} Unknown case {title.page_id} : {title.title}')
                     return
                 if resp.status == 200:
                     if not self.is_loading:
