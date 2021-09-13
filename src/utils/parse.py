@@ -3,8 +3,6 @@ from typing import List
 import pandas as pd
 from bs4 import BeautifulSoup
 
-import chardet
-
 from src.types.TableInfo import TableInfo
 
 stop_tags = ["h2"]

@@ -1,6 +1,5 @@
-import multiprocessing
 import os
-import time
+from typing import List
 
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -10,7 +9,10 @@ from src.model.TitlesCrawler import TitlesCrawler
 from src.scripts.get_ru_titles_total_count import get_ru_titles_total_count
 
 # app - simplest Flask server, app.run() to run server
-from src.utils.io import hook_up, dump
+from src.scripts.separate_titles import separate_titles
+from src.types.Title import Title
+from src.types.TitlesDictionary import TitlesDictionary
+from src.utils.io import dump
 
 app = Flask(__name__)
 CORS(app)
@@ -159,6 +161,26 @@ def pages_status():
         "isFinished": pages_crawler.is_finished,
         "isStoppingTasks": pages_crawler.is_stopping_tasks
     })
+
+
+@app.route("/split")
+def split():
+    """
+        Doc
+    """
+    sep: List[List[Title]] = list(separate_titles('titles', 6))
+
+    for i in range(len(sep)):
+        d = {}
+
+        for title in sep[i]:
+            d[title.page_id] = title
+
+        titles_dictionary = TitlesDictionary(titles=d, ap_continue=TitlesCrawler.__AP_CONTINUE_FINISHED_MARKER__)
+
+        dump(titles_dictionary, f'titles_part_{i}')
+
+    return 'ok'
 
 
 if __name__ == '__main__':

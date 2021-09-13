@@ -34,10 +34,6 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
     """
         Doc
     """
-
-    if len(table_info_list) == 0:
-        return
-
     page_directory = os.path.join('data', title.page_id)
 
     if not os.path.exists(page_directory):

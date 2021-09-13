@@ -41,6 +41,7 @@ class TitlesCrawler:
         iteration = 1
 
         while self.status.is_loading:
+            print(len(self.titles.titles))
             t1 = time.time()
             ap_continue = self.titles.ap_continue
             response = requests.get(get_link_by_ap_continue(ap_continue))
@@ -71,7 +72,7 @@ class TitlesCrawler:
 
             iteration += 1
 
-            if iteration % 20 == 0:
+            if iteration % 50 == 0:
                 self.__save()
 
             t2 = time.time()

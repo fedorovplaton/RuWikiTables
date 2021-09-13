@@ -1,23 +1,12 @@
-import math
-import multiprocessing
-import sys
-
-from bs4 import BeautifulSoup
-import pandas as pd
 import os
 import threading
-import time
-from typing import Dict, List
+from typing import Dict
 
 from src.types.Title import Title
 from src.types.TitlesDictionary import TitlesDictionary
 from src.utils.io import hook_up, dump_parsed_page, dump
-from multiprocessing import Pool, Process
-from queue import Queue
-import requests
 
-from src.types.TableInfo import TableInfo
-from src.utils.links import get_ru_wiki_link
+from src.utils.links import get_ru_wiki_link_by_id
 import asyncio
 
 import aiohttp
@@ -31,7 +20,7 @@ class PagesCrawler:
     """
     titles_dict: TitlesDictionary = {}
     only_pages_parsed: Dict[str, bool] = {}
-    MAX_TASKS: int = 100
+    MAX_TASKS: int = 1000
     thread: threading.Thread
 
     is_loading: bool = False
@@ -43,7 +32,7 @@ class PagesCrawler:
         pass
 
     async def __worker(self, session, title: Title):
-        url = get_ru_wiki_link(title.title)
+        url = get_ru_wiki_link_by_id(title.page_id)
 
         try:
             async with session.get(url) as resp:
@@ -59,7 +48,10 @@ class PagesCrawler:
                     html_text = await resp.text()
                     try:
                         table_info_list = parse_wiki_page(html_text)
-                        dump_parsed_page(table_info_list, title)
+
+                        if len(table_info_list) > 0:
+                            dump_parsed_page(table_info_list, title)
+
                         self.only_pages_parsed[str(title.page_id)] = True
                     except Exception as error:
                         print('Parsing error: ', error) # ToDo log parsing errors
