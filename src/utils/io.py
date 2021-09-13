@@ -34,6 +34,10 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
     """
         Doc
     """
+
+    if len(table_info_list) == 0:
+        return
+
     page_directory = os.path.join('data', title.page_id)
 
     if not os.path.exists(page_directory):
@@ -44,9 +48,6 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
             "title": title.title,
             "page_id": title.page_id
         }, f, indent=4)
-
-    if len(table_info_list) == 0:
-        return
 
     for index in range(len(table_info_list)):
         table_info = table_info_list[index]
