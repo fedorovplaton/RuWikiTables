@@ -168,13 +168,13 @@ def split():
     """
         Doc
     """
-    sep: List[List[Title]] = list(separate_titles('titles', 6))
+    sep: List[List[Title]] = list(separate_titles('titles', 8))
 
     for i in range(len(sep)):
         d = {}
 
         for title in sep[i]:
-            d[title.page_id] = title
+            d[str(title.page_id)] = title
 
         titles_dictionary = TitlesDictionary(titles=d, ap_continue=TitlesCrawler.__AP_CONTINUE_FINISHED_MARKER__)
 
