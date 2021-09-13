@@ -2,16 +2,16 @@ import os
 import threading
 from typing import Dict
 
-from src.types.Title import Title
-from src.types.TitlesDictionary import TitlesDictionary
-from src.utils.io import hook_up, dump_parsed_page, dump
+from my_types.Title import Title
+from my_types.TitlesDictionary import TitlesDictionary
+from utils.io import hook_up, dump_parsed_page, dump
 
-from src.utils.links import get_ru_wiki_link_by_id
+from utils.links import get_ru_wiki_link_by_id
 import asyncio
 
 import aiohttp
 
-from src.utils.parse import parse_wiki_page
+from utils.parse import parse_wiki_page
 
 
 class PagesCrawler:

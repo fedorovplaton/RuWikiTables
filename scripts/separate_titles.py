@@ -3,9 +3,9 @@
 """
 from typing import List
 
-from src.types.Title import Title
-from src.types.TitlesDictionary import TitlesDictionary
-from src.utils.io import hook_up
+from my_types.Title import Title
+from my_types.TitlesDictionary import TitlesDictionary
+from utils.io import hook_up
 
 
 def separate_titles(path_to_titles: str, n_parts: int):

@@ -3,7 +3,7 @@
 """
 import pandas as pd
 
-from src.types.ColumnInfo import ColumnInfo
+from my_types.ColumnInfo import ColumnInfo
 
 
 class TableInfo:

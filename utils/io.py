@@ -3,8 +3,8 @@ import pickle
 from typing import Any, List
 import json
 
-from src.types.TableInfo import TableInfo
-from src.types.Title import Title
+from my_types.TableInfo import TableInfo
+from my_types.Title import Title
 
 
 def dump(obj: Any, filename: str) -> None:

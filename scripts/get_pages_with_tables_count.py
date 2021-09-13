@@ -3,9 +3,9 @@
 """
 import os
 
-from src.types.Title import Title
-from src.types.TitlesDictionary import TitlesDictionary
-from src.utils.io import hook_up
+from my_types.Title import Title
+from my_types.TitlesDictionary import TitlesDictionary
+from utils.io import hook_up
 
 
 def get_pages_with_tables_count(path_to_data: str, path_to_titles: str, path_to_only_pages_parsed) -> None:

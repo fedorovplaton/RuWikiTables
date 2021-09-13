@@ -4,15 +4,15 @@ from typing import List
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from src.model.PagesCrawler import PagesCrawler
-from src.model.TitlesCrawler import TitlesCrawler
-from src.scripts.get_ru_titles_total_count import get_ru_titles_total_count
+from model.PagesCrawler import PagesCrawler
+from model.TitlesCrawler import TitlesCrawler
+from scripts.get_ru_titles_total_count import get_ru_titles_total_count
 
 # app - simplest Flask server, app.run() to run server
-from src.scripts.separate_titles import separate_titles
-from src.types.Title import Title
-from src.types.TitlesDictionary import TitlesDictionary
-from src.utils.io import dump
+from scripts.separate_titles import separate_titles
+from my_types.Title import Title
+from my_types.TitlesDictionary import TitlesDictionary
+from utils.io import dump
 
 app = Flask(__name__)
 CORS(app)
