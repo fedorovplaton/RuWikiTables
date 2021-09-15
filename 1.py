@@ -14,8 +14,8 @@ def calculate_statistic():
     max_cols = 0
     characters_num = 0
 
-    cols_count = dict()
-    rows_count = dict()
+    cols_count = 0
+    rows_count = 0
     length_dict = dict()
     length_russian_dict = 0
     length_english_dict = 0
@@ -42,6 +42,9 @@ def calculate_statistic():
         bar.next()
         max_cols = max(max_cols, df.shape[1])
         max_rows = max(max_rows, df.shape[0])
+
+        cols_count += df.shape[1]
+        cols_count = df.shape[0]
 
         size_tmp = str(df.shape[1]) + "x" + str(df.shape[1])
         table_sizes[size_tmp] = table_sizes.get(size_tmp, 0) + 1
@@ -101,6 +104,8 @@ def calculate_statistic():
     print("Tables count: ", len(all_files))
     print("Max cols: ", max_rows)
     print("Max rows: ", max_rows)
+    print("Rows: ", rows_count)
+    print("Cols: ", cols_count)
     print("Cells : ", cell_count)
     print("Charcters : ", characters_num)
     print("Russian characters : ", length_russian_dict)
