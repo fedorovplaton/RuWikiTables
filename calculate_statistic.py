@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import glob
 import matplotlib.pyplot as plt
+from progress.bar import IncrementalBar
 
 
 def calculate_statistic():
@@ -28,10 +29,12 @@ def calculate_statistic():
     non_string_count = 0
 
     null_rows_count = 0
+    bar = IncrementalBar('Countdown', max=len(all_files))
 
     for filename in all_files:
         df = pd.read_csv(filename, sep='|')
         cells = df.shape[0] * df.shape[1]
+        bar.next()
         if df.shape[1] > max_cols:
             max_cols = df.shape[1]
             max_cols_cell_count = cells
