@@ -3,7 +3,7 @@ from typing import List
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from src.types.TableInfo import TableInfo
+from my_types.TableInfo import TableInfo
 
 stop_tags = ["h2"]
 

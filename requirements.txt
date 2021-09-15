@@ -8,3 +8,4 @@ aiohttp~=3.7.4
 chardet~=3.0.4
 matplotlib~=3.4.3
 flask-cors~=3.0.10
+numpy~=1.21.2

@@ -3,7 +3,7 @@
 """
 from typing import Dict
 
-from src.types.Title import Title
+from my_types.Title import Title
 
 
 class TitlesDictionary:

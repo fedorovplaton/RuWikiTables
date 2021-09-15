@@ -3,8 +3,8 @@ import pickle
 from typing import Any, List
 import json
 
-from src.types.TableInfo import TableInfo
-from src.types.Title import Title
+from my_types.TableInfo import TableInfo
+from my_types.Title import Title
 
 
 def dump(obj: Any, filename: str) -> None:
@@ -34,15 +34,15 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
     """
         Doc
     """
-    page_directory = os.path.join('data', title.page_id)
+    page_directory = os.path.join('data', str(title.page_id))
 
     if not os.path.exists(page_directory):
         os.mkdir(page_directory)
 
-    with open(f'{page_directory.title()}/page_meta.json', 'w+', encoding='utf-8') as f:
+    with open(f'{page_directory.title().lower()}/page_meta.json', 'w+', encoding='utf-8') as f:
         json.dump({
             "title": title.title,
-            "page_id": title.page_id
+            "page_id": str(title.page_id)
         }, f, indent=4)
 
     for index in range(len(table_info_list)):
@@ -63,7 +63,7 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
             json.dump({
                 "page": {
                     "title": title.title,
-                    "page_id": title.page_id
+                    "page_id": str(title.page_id)
                 },
                 "title": table_info.title,
                 "after_context": table_info.after_context,

@@ -127,7 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/src/titles
-/src/titles2
-/src/data/
-/src/only_pages_parsed
+titles
+all_titles
+titles2
+data/
+only_pages_parsed

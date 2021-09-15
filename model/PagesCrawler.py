@@ -2,16 +2,16 @@ import os
 import threading
 from typing import Dict
 
-from src.types.Title import Title
-from src.types.TitlesDictionary import TitlesDictionary
-from src.utils.io import hook_up, dump_parsed_page, dump
+from my_types.Title import Title
+from my_types.TitlesDictionary import TitlesDictionary
+from utils.io import hook_up, dump_parsed_page, dump
 
-from src.utils.links import get_ru_wiki_link_by_id
+from utils.links import get_ru_wiki_link_by_id
 import asyncio
 
 import aiohttp
 
-from src.utils.parse import parse_wiki_page
+from utils.parse import parse_wiki_page
 
 
 class PagesCrawler:
@@ -20,7 +20,7 @@ class PagesCrawler:
     """
     titles_dict: TitlesDictionary = {}
     only_pages_parsed: Dict[str, bool] = {}
-    MAX_TASKS: int = 1000
+    MAX_TASKS: int = 500
     thread: threading.Thread
 
     is_loading: bool = False
@@ -32,14 +32,14 @@ class PagesCrawler:
         pass
 
     async def __worker(self, session, title: Title):
-        url = get_ru_wiki_link_by_id(title.page_id)
+        url = get_ru_wiki_link_by_id(str(title.page_id))
 
         try:
             async with session.get(url) as resp:
                 if resp.status == 429:
                     raise Exception(f'{resp.status} Too many requests')
                 if resp.status != 200 and resp.status != 304:
-                    print(f'{resp.status} Unknown case {title.page_id} : {title.title}')
+                    print(f'{resp.status} Unknown case {str(title.page_id)} : {title.title}')
                     return
                 if resp.status == 200:
                     if not self.is_loading:
@@ -52,10 +52,10 @@ class PagesCrawler:
                         if len(table_info_list) > 0:
                             dump_parsed_page(table_info_list, title)
 
-                        self.only_pages_parsed[str(title.page_id)] = True
+                        self.only_pages_parsed[str(str(title.page_id))] = True
                     except Exception as error:
                         print('Parsing error: ', error) # ToDo log parsing errors
-                        self.only_pages_parsed[title.page_id] = False
+                        self.only_pages_parsed[str(title.page_id)] = False
         except Exception as error:
             print('Network error:', str(error))
             raise error

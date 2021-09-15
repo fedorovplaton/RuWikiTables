@@ -7,16 +7,16 @@ from typing import List
 
 import requests
 
-from src.types.Title import Title
-from src.types.TitlesCrawlerStatus import TitlesCrawlerStatus
-from src.types.TitlesDictionary import TitlesDictionary
+from my_types.Title import Title
+from my_types.TitlesCrawlerStatus import TitlesCrawlerStatus
+from my_types.TitlesDictionary import TitlesDictionary
 from threading import Thread
 
 # Переменная для храанения общего количества страниц русской вики
 # Она инициализируется с самого начала, чтобы показывать пользователям,
 # сколько еще названий страниц нужно выкачать
-from src.utils.io import dump, hook_up
-from src.utils.links import get_link_by_ap_continue
+from utils.io import dump, hook_up
+from utils.links import get_link_by_ap_continue
 
 
 class TitlesCrawler:

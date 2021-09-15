@@ -1,6 +1,6 @@
 import os
 
-from src.utils.io import hook_up
+from utils.io import hook_up
 
 
 def __load_only_pages_parsed(self):
