@@ -41,9 +41,24 @@ def calculate_statistic():
     null_cols_count = 0
 
     table_sizes = dict()
+    headers = dict()
+    most_table_rich_page = dict()
+
     bar = IncrementalBar('Countdown', max=len(all_files))
 
+    iteration = 0
+
     for filename in all_files:
+        iteration += 1
+
+        page_id = filename.split('/')[1]
+
+        if page_id:
+            most_table_rich_page[page_id] = most_table_rich_page.get(page_id, 0) + 1
+
+        if iteration > 20:
+            break
+
         df = pd.read_csv(filename, sep='|')
         bar.next()
 
@@ -107,7 +122,13 @@ def calculate_statistic():
             if tmp_is_only_numeric:
                 only_numeric_col_count += 1
 
-    table_sizes = dict(sorted(table_sizes.items(), key=lambda item: item[1]))
+        for header in df.columns:
+            headers[str(header)] = headers.get(header, 0) + 1
+
+    sorted_table_sizes = sorted(table_sizes.items(), key=lambda item: item[1])
+    sorted_header_tuples = sorted(headers.items(), key=lambda item: item[1])
+    sorted_most_table_rich_page_tuples = sorted(most_table_rich_page.items(), key=lambda item: item[1])
+
     # Table 1
     tables_count = len(all_files)
     print("Total number of tables: ", tables_count)
@@ -127,15 +148,13 @@ def calculate_statistic():
     print("Percentage of columns that contains only Russian characters: ", only_russian_col_count / cols_total)
     print("Percentage of columns that contains only Latin characters: ", only_english_col_count / cols_total)
     print("Percentage of columns that contains only numeric data: ", only_numeric_col_count / cols_total)
-    print("Most common table sizes: ")
-    for x in list(table_sizes)[0:11]:
-        print(str(x))
-
+    print("Most common table sizes in INVERSED ORDER:", sorted_table_sizes[-10:])
+    print("Ten most common headers in INVERSED ORDER:", sorted_header_tuples[-10:])
     print("Most big table (x cells): ", max_cells, max_cells_filename)
     print("Most wide table (x cells): ", max_col_len, max_col_len_filename)
     print("Most long table (x cells): ", max_row_len, max_row_len_filename)
     print("Most populated table: ", max_characters_in_cell, " ", max_characters_in_cell_filename)
-    print("Most table-rich page (x tables): ", max_length_cell_count)
+    print("Most table-rich page (x tables) in INVERSED ORDER: ", sorted_most_table_rich_page_tuples[-10:])
 
 
 if __name__ == '__main__':
