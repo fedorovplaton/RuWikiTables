@@ -43,6 +43,8 @@ def calculate_statistic():
     table_sizes = dict()
     headers = dict()
     most_table_rich_page = dict()
+    n_row_tables_count = dict()
+    n_col_tables_count = dict()
 
     bar = IncrementalBar('Countdown', max=len(all_files))
 
@@ -68,6 +70,9 @@ def calculate_statistic():
 
         tmp_key = str(df.shape[1]) + "x" + str(df.shape[0])
         table_sizes[tmp_key] = table_sizes.get(tmp_key, 0) + 1
+
+        n_row_tables_count[df.shape[0]] += 1
+        n_col_tables_count[df.shape[1]] += 1
 
         cols_total += df.shape[1]
         rows_total += df.shape[0]
@@ -121,6 +126,8 @@ def calculate_statistic():
     sorted_table_sizes = sorted(table_sizes.items(), key=lambda item: item[1])
     sorted_header_tuples = sorted(headers.items(), key=lambda item: item[1])
     sorted_most_table_rich_page_tuples = sorted(most_table_rich_page.items(), key=lambda item: item[1])
+    sorted_n_row_tables_count = sorted(n_row_tables_count.items(), key=lambda item: item[1])
+    sorted_n_col_tables_count = sorted(n_col_tables_count.items(), key=lambda item: item[1])
 
     # Table 1
     tables_count = len(all_files)
@@ -148,6 +155,9 @@ def calculate_statistic():
     print("Most long table (x cells): ", max_row_len, max_row_len_filename)
     print("Most populated table: ", max_characters_in_cell, " ", max_characters_in_cell_filename)
     print("Most table-rich page (x tables) in INVERSED ORDER: ", sorted_most_table_rich_page_tuples[-10:])
+
+    print("Dict with rows count: ", sorted_n_row_tables_count)
+    print("Dict with cols count: ", sorted_n_col_tables_count)
 
 
 if __name__ == '__main__':
