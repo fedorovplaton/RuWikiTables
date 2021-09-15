@@ -46,18 +46,11 @@ def calculate_statistic():
 
     bar = IncrementalBar('Countdown', max=len(all_files))
 
-    iteration = 0
-
     for filename in all_files:
-        iteration += 1
-
         page_id = filename.split('/')[1]
 
         if page_id:
             most_table_rich_page[page_id] = most_table_rich_page.get(page_id, 0) + 1
-
-        if iteration > 20:
-            break
 
         df = pd.read_csv(filename, sep='|')
         bar.next()
