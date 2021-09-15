@@ -155,9 +155,8 @@ def calculate_statistic():
     print("Most long table (x cells): ", max_row_len, max_row_len_filename)
     print("Most populated table: ", max_characters_in_cell, " ", max_characters_in_cell_filename)
     print("Most table-rich page (x tables) in INVERSED ORDER: ", sorted_most_table_rich_page_tuples[-10:])
-
-    print("Dict with rows count: ", sorted_n_row_tables_count)
-    print("Dict with cols count: ", sorted_n_col_tables_count)
+    print("Dict with rows count: ", sorted_n_row_tables_count[-110:])
+    print("Dict with cols count: ", sorted_n_col_tables_count[-110:])
 
 
 if __name__ == '__main__':
