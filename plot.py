@@ -20,7 +20,7 @@ def calculate_statistic():
 
         if df.shape[1] <= 100:
             cols_count[df.shape[1]] = cols_count.get(df.shape[1], 0) + 1
-        if df.shape[0]:
+        if df.shape[0] <= 100:
             rows_count[df.shape[0]] = rows_count.get(df.shape[0], 0) + 1
 
     x = []

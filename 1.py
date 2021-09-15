@@ -44,7 +44,7 @@ def calculate_statistic():
         max_rows = max(max_rows, df.shape[0])
 
         cols_count += df.shape[1]
-        cols_count = df.shape[0]
+        rows_count += df.shape[0]
 
         size_tmp = str(df.shape[1]) + "x" + str(df.shape[1])
         table_sizes[size_tmp] = table_sizes.get(size_tmp, 0) + 1
@@ -102,7 +102,7 @@ def calculate_statistic():
     # print("Most length table (x cells): ", max_rows_cell_count)
     # print("Most wide table (x cells): ", max_cols_cell_count)
     print("Tables count: ", len(all_files))
-    print("Max cols: ", max_rows)
+    print("Max cols: ", max_cols)
     print("Max rows: ", max_rows)
     print("Rows: ", rows_count)
     print("Cols: ", cols_count)
