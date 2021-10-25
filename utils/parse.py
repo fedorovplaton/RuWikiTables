@@ -2,6 +2,7 @@ from typing import List
 
 import pandas as pd
 from bs4 import BeautifulSoup
+from pandas import DataFrame
 
 from my_types.TableInfo import TableInfo
 
@@ -28,6 +29,20 @@ def find_context_previous(words_count: int, html_table):
     return ' '.join(result[:words_count])
 
 
+def drop_duplicates(df):
+    result = DataFrame()
+    is_duplicate = False
+    for column in df:
+        is_duplicate = False
+        for c in result:
+            if (df[column] == result[c]).all():
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            result[column] = df[column]
+    return result
+
+
 def parse_wiki_page(html_text: str) -> List[TableInfo]:
     """
     :param html_text: html code of wiki page
@@ -40,6 +55,7 @@ def parse_wiki_page(html_text: str) -> List[TableInfo]:
         indiatable = soup.findAll('table', {'class': "wikitable"})
         for html_table in indiatable:
             table = pd.read_html(str(html_table))[0]
+            table = drop_duplicates(table)
             previous_context = ""
             after_context = ""
             title = ""
