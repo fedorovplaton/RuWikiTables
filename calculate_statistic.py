@@ -4,146 +4,159 @@ import re
 import pandas as pd
 import glob
 import matplotlib.pyplot as plt
+from progress.bar import IncrementalBar
 
 
 def calculate_statistic():
     path = 'data'
     all_files = glob.glob(path + "/*/*.csv")
-    max_rows = 0
-    max_rows_cell_count = 0
+    max_row_len = 0
+    max_row_len_filename = ""
+    max_col_len = 0
+    max_col_len_filename = ""
+    max_cells = 0
+    max_cells_filename = ""
 
-    max_cols = 0
-    max_cols_cell_count = 0
+    max_characters_in_cell = 0
+    max_characters_in_cell_filename = ""
 
-    cols_count = dict()
-    rows_count = dict()
-    length_dict = dict()
-    length_russian_dict = dict()
-    length_english_dict = dict()
+    characters_total = 0
+    rus_characters_total = 0
+    en_characters_total = 0
 
-    max_length = 0
-    max_length_cell_count = 0
+    only_russian_col_count = 0
+    only_english_col_count = 0
+    only_numeric_col_count = 0
 
-    cell_count = 0
+    rows_total = 0
+    cols_total = 0
+    cells_total = 0
+
+    rus_reg = re.compile('[а-яА-Я]')
+    en_reg = re.compile('[a-zA-Z]')
+
     non_string_count = 0
 
     null_rows_count = 0
+    null_cols_count = 0
+
+    table_sizes = dict()
+    headers = dict()
+    most_table_rich_page = dict()
+    n_row_tables_count = dict()
+    n_col_tables_count = dict()
+
+    bar = IncrementalBar('Countdown', max=len(all_files))
 
     for filename in all_files:
+        page_id = filename.split('/')[1]
+
+        if page_id:
+            most_table_rich_page[page_id] = most_table_rich_page.get(page_id, 0) + 1
+
         df = pd.read_csv(filename, sep='|')
+        bar.next()
+
         cells = df.shape[0] * df.shape[1]
-        if df.shape[1] > max_cols:
-            max_cols = df.shape[1]
-            max_cols_cell_count = cells
+        if max_col_len < df.shape[1]:
+            max_col_len = df.shape[1]
+            max_col_len_filename = filename
+        if max_row_len < df.shape[0]:
+            max_row_len = df.shape[0]
+            max_row_len_filename = filename
+        if max_cells < cells:
+            max_cells = cells
+            max_cells_filename = filename
 
-        if df.shape[0] > max_rows:
-            max_rows = df.shape[0]
-            max_rows_cell_count = cells
+        tmp_key = str(df.shape[1]) + "x" + str(df.shape[0])
+        table_sizes[tmp_key] = table_sizes.get(tmp_key, 0) + 1
 
-        cols_count[df.shape[1]] = cols_count.get(df.shape[1], 0) + 1
-        rows_count[df.shape[0]] = rows_count.get(df.shape[0], 0) + 1
-        length = 0
-        cell_count += cells
+        n_row_tables_count[df.shape[0]] += 1
+        n_col_tables_count[df.shape[1]] += 1
+
+        cols_total += df.shape[1]
+        rows_total += df.shape[0]
+        cells_total += cells
+        tmp_length = 0
         for i in range(df.shape[0]):  # iterate over rows
-            null_rows_count += df.loc[i, :].isna().sum()
+            if df.loc[i, :].isna().sum() > 0.7 * df.shape[1]:
+                null_rows_count += 1
             for j in range(df.shape[1]):  # iterate over columns
                 string_value = str(df.iat[i, j])
-                len1 = len(string_value)
-                length += len1  # get cell value
-                length_dict[len1] = length_dict.get(len1, 0) + 1
-                rus_len = len(re.findall('[а-яА-Я]', string_value))
-                en_len = len(re.findall('[a-zA-Z]', string_value))
-                length_russian_dict[rus_len] = length_russian_dict.get(rus_len, 0) + 1
-                length_english_dict[en_len] = length_russian_dict.get(en_len, 0) + 1
+                chars_in_cell = len(string_value)
+                tmp_length += chars_in_cell
+                characters_total += chars_in_cell
+                rus_characters_total += len(rus_reg.findall(string_value))
+                en_characters_total += len(en_reg.findall(string_value))
                 if not string_value.isalpha():
                     non_string_count += 1
 
-        if length > max_length:
-            max_length = length
-            max_length_cell_count = cells
+        if max_characters_in_cell < tmp_length:
+            max_characters_in_cell = tmp_length
+            max_characters_in_cell_filename = filename
+
+        for i in range(df.shape[1]):  # iterate over rows
+            if df.iloc[:, [i]].isna().sum()[0] > 0.7 * df.shape[0]:
+                null_cols_count += 1
+
+            tmp_is_only_russian = True
+            tmp_is_only_english = True
+            tmp_is_only_numeric = True
+            for j in range(df.shape[0]):  # iterate over columns
+                string_value = str(df.iat[j, i])
+                if len(rus_reg.findall(string_value)) > 0 or not string_value.isalpha():
+                    tmp_is_only_english = False
+                if len(en_reg.findall(string_value)) > 0 or not string_value.isalpha():
+                    tmp_is_only_russian = False
+                if not string_value.isdigit():
+                    tmp_is_only_numeric = False
+                if not tmp_is_only_russian and not tmp_is_only_english and not tmp_is_only_numeric:
+                    break
+
+            if tmp_is_only_russian:
+                only_russian_col_count += 1
+            if tmp_is_only_english:
+                only_english_col_count += 1
+            if tmp_is_only_numeric:
+                only_numeric_col_count += 1
+
+        for header in df.columns:
+            headers[str(header)] = headers.get(header, 0) + 1
+
+    sorted_table_sizes = sorted(table_sizes.items(), key=lambda item: item[1])
+    sorted_header_tuples = sorted(headers.items(), key=lambda item: item[1])
+    sorted_most_table_rich_page_tuples = sorted(most_table_rich_page.items(), key=lambda item: item[1])
+    sorted_n_row_tables_count = sorted(n_row_tables_count.items(), key=lambda item: item[1])
+    sorted_n_col_tables_count = sorted(n_col_tables_count.items(), key=lambda item: item[1])
 
     # Table 1
-    print("Most length table (x cells): ", max_rows_cell_count)
-    print("Most wide table (x cells): ", max_cols_cell_count)
-    print("Most popular table (x characters): ", max_length)
-    print("Most popular table (x cells): ", max_length_cell_count)
-
-    print(' ')
-
-    cols = 0
-    c_c = 0
-
-    for key, value in cols_count.items():
-        cols += value
-        c_c += key * value
-
-    rows = 0
-    r_c = 0
-    for key, value in rows_count.items():
-        rows += value
-        r_c += key * value
-
-    rus = 0
-    ruc_c = 0
-    for key, value in length_russian_dict.items():
-        rus += value
-        ruc_c += key * value
-
-    en = 0
-    en_c = 0
-    for key, value in length_english_dict.items():
-        en += value
-        en_c += key * value
-
-    l = 0
-    l_c = 0
-    for key, value in length_dict.items():
-        l += value
-        l_c += key * value
-
-    # Table 2
-    print("Tables count: ", len(all_files))
-    print("Avg number of cells per row: ", c_c / cols)
-    print("Avg number of cells per column: ", r_c / rows)
-    print("Avg number of characters per cell: ", l_c / l)
-    print("Avg number of Russian characters per cell: ", ruc_c / rus)
-    print("Avg number of Latin characters per cell: ", en_c / en)
-    print("Percentage of cells with non-string data: ", non_string_count / cell_count)
-    print("Percentage of rows thar are mostly NULL: ", null_rows_count / rows)
-
-    x = []
-    y = []
-    max_key = max(rows_count.keys())
-    for i in range(1, max_key + 1):
-        k = 0
-        x.append(i)
-        for key1, value1 in rows_count.items():
-            if key1 >= i:
-                k += value1
-        y.append(k)
-    y = [e / len(all_files) for e in y]
-
-    x1 = []
-    y1 = []
-    max_key = max(cols_count.keys())
-    for i in range(1, max_key + 1):
-        k = 0
-        x1.append(i)
-        for key1, value1 in cols_count.items():
-            if key1 >= i:
-                k += value1
-        y1.append(k)
-    y1 = [e / len(all_files) for e in y1]
-
-    plt.style.use('seaborn-whitegrid')
-    # x = rows_count.keys()
-    # y = rows_count.values()
-    plt.plot(x, y, 'x', label='at least x rows')
-    plt.plot(x1, y1, 'o', label='at least x columns')
-    plt.xlabel('Distribution of rows and columns')
-    plt.ylabel('Fraction of Web Tables')
-    plt.legend()
-    plt.show()
+    tables_count = len(all_files)
+    print("Total number of tables: ", tables_count)
+    print("Total number of rows: ", rows_total)
+    print("Total number of columns: ", cols_total)
+    print("Total number of cells: ", cells_total)
+    print("Avg cells per table: ", cells_total / tables_count)
+    print("Avg numbers of tables per page: ", tables_count / 3960680)
+    print("Avg numbers of cells per row: ", cells_total / rows_total)
+    print("Avg numbers of cells per column: ", cells_total / cols_total)
+    print("Avg numbers of characters per cell: ", characters_total / cells_total)
+    print("Avg numbers of Russian characters per cell: ", rus_characters_total / cells_total)
+    print("Avg numbers of Latin characters per cell: ", en_characters_total / cells_total)
+    print("Percentage of cells with non-string data: ", non_string_count / cells_total)
+    print("Percentage of columns that are mostly NULL: ", null_cols_count / cols_total)
+    print("Percentage of rows that are mostly NULL: ", null_rows_count / rows_total)
+    print("Percentage of columns that contains only Russian characters: ", only_russian_col_count / cols_total)
+    print("Percentage of columns that contains only Latin characters: ", only_english_col_count / cols_total)
+    print("Percentage of columns that contains only numeric data: ", only_numeric_col_count / cols_total)
+    print("Most common table sizes in INVERSED ORDER:", sorted_table_sizes[-10:])
+    print("Ten most common headers in INVERSED ORDER:", sorted_header_tuples[-10:])
+    print("Most big table (x cells): ", max_cells, max_cells_filename)
+    print("Most wide table (x cells): ", max_col_len, max_col_len_filename)
+    print("Most long table (x cells): ", max_row_len, max_row_len_filename)
+    print("Most populated table: ", max_characters_in_cell, " ", max_characters_in_cell_filename)
+    print("Most table-rich page (x tables) in INVERSED ORDER: ", sorted_most_table_rich_page_tuples[-10:])
+    print("Dict with rows count: ", sorted_n_row_tables_count[-110:])
+    print("Dict with cols count: ", sorted_n_col_tables_count[-110:])
 
 
 if __name__ == '__main__':

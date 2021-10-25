@@ -128,6 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 titles
+all_titles
 titles2
 data/
 only_pages_parsed
