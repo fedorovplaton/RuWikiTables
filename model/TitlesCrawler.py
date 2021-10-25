@@ -1,58 +1,63 @@
 """
-    Crawler model
+    Titles crawler class
 """
 import os
 import time
-from typing import List
+from typing import List, Tuple
 
 import requests
 
 from my_types.Title import Title
-from my_types.TitlesCrawlerStatus import TitlesCrawlerStatus
 from my_types.TitlesDictionary import TitlesDictionary
 from threading import Thread
 
-# Переменная для храанения общего количества страниц русской вики
-# Она инициализируется с самого начала, чтобы показывать пользователям,
-# сколько еще названий страниц нужно выкачать
+from scripts.get_ru_titles_total_count import get_ru_titles_total_count
 from utils.io import dump, hook_up
 from utils.links import get_link_by_ap_continue
 
 
 class TitlesCrawler:
+    """
+        Class for crawling ru wiki page titles
+    """
     titles: TitlesDictionary
-    status: TitlesCrawlerStatus = TitlesCrawlerStatus()
     download_thread: Thread
 
+    total_count: int = 0
     average_speed: float = 0.0
     downloaded_in_row: int = 0
     times_in_row: List[float] = []
+
+    is_loading: bool = False
+    is_finished: bool = False
 
     __AP_CONTINUE_FINISHED_MARKER__ = '__AP_CONTINUE_FINISHED_MARKER__'
 
     def __init__(self):
         self.download_thread = Thread(target=self.__downloading)
+        self.total_count = get_ru_titles_total_count()
         self.__load()
 
         if self.titles.ap_continue == self.__AP_CONTINUE_FINISHED_MARKER__:
-            self.status.is_finished = True
+            self.is_finished = True
 
     def __downloading(self):
         iteration = 1
 
-        while self.status.is_loading:
+        while self.is_loading:
             print(len(self.titles.titles))
             t1 = time.time()
             ap_continue = self.titles.ap_continue
-            response = requests.get(get_link_by_ap_continue(ap_continue))
+            link = get_link_by_ap_continue(ap_continue)
+            response = requests.get(link)
             data = response.json()
 
             try:
                 ap_continue = data["continue"]["apcontinue"]
             except Exception as error:
                 self.titles.ap_continue = self.__AP_CONTINUE_FINISHED_MARKER__
-                self.status.is_loading = False
-                self.status.is_finished = True
+                self.is_loading = False
+                self.is_finished = True
                 self.__save()
                 print(error)
                 break
@@ -89,32 +94,11 @@ class TitlesCrawler:
         else:
             self.titles = TitlesDictionary()
 
-    def start_download(self):
-        if self.status.is_loading:
-            return
-
-        self.__load()
-
-        if self.titles.ap_continue != self.__AP_CONTINUE_FINISHED_MARKER__:
-            self.status.is_loading = True
-            self.download_thread.start()
-        else:
-            self.status.is_finished = True
-
-    def stop_download(self):
-        if not self.status.is_loading:
-            return
-
-        self.status.is_loading = False
-        self.download_thread = Thread(target=self.__downloading)
-        self.times_in_row = []
-        self.downloaded_in_row = 0
-
-    def get_downloaded_titles__count(self) -> int:
+    def __get_downloaded_titles__count(self) -> int:
         return len(self.titles.titles)
 
-    def get_approximate_time(self, total_count: int) -> float:
-        if self.status.is_finished:
+    def __get_approximate_time(self) -> float:
+        if self.is_finished:
             return 0.0
 
         if len(self.times_in_row) == 0:
@@ -123,6 +107,44 @@ class TitlesCrawler:
         t = sum(self.times_in_row)
         count = self.downloaded_in_row
         speed = t / count
-        to_download = total_count - self.get_downloaded_titles__count()
+        to_download = self.total_count - self.__get_downloaded_titles__count()
 
         return speed * to_download
+
+    def start_download(self):
+        if self.is_loading:
+            return
+
+        self.__load()
+
+        if self.titles.ap_continue != self.__AP_CONTINUE_FINISHED_MARKER__:
+            self.is_loading = True
+            self.download_thread.start()
+        else:
+            self.is_finished = True
+
+    def stop_download(self):
+        if not self.is_loading:
+            return
+
+        self.is_loading = False
+        self.download_thread = Thread(target=self.__downloading)
+        self.times_in_row = []
+        self.downloaded_in_row = 0
+
+    def get_status(self) -> Tuple[bool, bool, int, int, float]:
+        """
+        :return: Tuple [
+            bool,  is loading
+            bool,  is process finished,
+            int,   downloaded titles count,
+            int,   total count for downloading,
+            float, approximate time for downloading
+        ]
+        """
+
+        return self.is_loading, \
+               self.is_finished, \
+               self.__get_downloaded_titles__count(), \
+               self.total_count, \
+               self.__get_approximate_time()

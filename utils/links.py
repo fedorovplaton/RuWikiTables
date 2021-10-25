@@ -2,6 +2,10 @@
     Doc
 """
 
+import re
+
+ap_continue_preprocess = re.compile(r'\+')
+
 
 def get_ru_wiki_link(title: str):
     """
@@ -27,5 +31,7 @@ def get_link_by_ap_continue(ap_continue: str) -> str:
     :param ap_continue:
     :return:
     """
+    ap_continue = ap_continue_preprocess.sub('%2B', ap_continue)
+
     return 'https://ru.wikipedia.org/w/api.php?action=query&format=json&list=allpages&' + \
            f'apcontinue={ap_continue}&apnamespace=0&apfilterredir=all&aplimit=500&apdir=ascending'

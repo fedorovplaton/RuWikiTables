@@ -18,115 +18,67 @@ app = Flask(__name__)
 CORS(app)
 titles_crawler = TitlesCrawler()
 pages_crawler = PagesCrawler()
-ru_titles_total_count: int = get_ru_titles_total_count()
 
 
-# Прописываем пути в аннотации и пишем код
-@app.route("/")
+@app.route("/", methods=['GET'])
 def base():
     """
     Base route
-    :return:
+    :return: str
     """
-    return "Hello, World!"
+    return "RuWikiTables"
 
 
-@app.route("/titles_count")
-def titles_count():
-    """
-    Выводит сколько уже названий страниц скачали
-    :return:
-    """
-
-    _status = titles_crawler.status
-
-    return jsonify({
-        "value": titles_crawler.get_downloaded_titles__count(),
-        "status": {
-            "isLoading": _status.is_loading,
-            "isFinished": _status.is_finished
-        }
-    })
-
-
-@app.route("/total_titles_count")
-def total_titles_count():
-    """
-    Сколько всего страниц в вики
-    :return:
-    """
-
-    _status = titles_crawler.status
-
-    return jsonify({
-        "value": ru_titles_total_count,
-        "status": {
-            "isLoading": _status.is_loading,
-            "isFinished": _status.is_finished
-        }
-    })
-
-
-@app.route("/start")
+@app.route("/titles/start", methods=['POST'])
 def start():
     """
-    Начать скачивать имена страниц
-    :return:
+        Start downloading page titles
     """
-    titles_crawler.start_download()
 
-    _status = titles_crawler.status
+    titles_crawler.start_download()
+    is_loading, is_finished, downloaded_count, total_count, approximate_time = titles_crawler.get_status()
 
     return jsonify({
-        "isLoading": _status.is_loading,
-        "isFinished": _status.is_finished
+        "isLoading": is_loading,
+        "isFinished": is_finished,
+        "downloadedCount": downloaded_count,
+        "totalCount": total_count,
+        "approximateTime": approximate_time
     })
 
 
-@app.route("/stop")
+@app.route("/titles/stop", methods=['POST'])
 def stop():
     """
-    Прекратить скачивать имена страниц
-    :return:
+        Stop downloading page titles
     """
+
     titles_crawler.stop_download()
-    _status = titles_crawler.status
+    is_loading, is_finished, downloaded_count, total_count, approximate_time = titles_crawler.get_status()
 
     return jsonify({
-        "isLoading": _status.is_loading,
-        "isFinished": _status.is_finished
+        "isLoading": is_loading,
+        "isFinished": is_finished,
+        "downloadedCount": downloaded_count,
+        "totalCount": total_count,
+        "approximateTime": approximate_time
     })
 
 
-@app.route("/approximate_time")
-def approximate_time():
-    """
-    Примерное время ожидания
-    :return:
-    """
-
-    _status = titles_crawler.status
-
-    return jsonify({
-        "value": titles_crawler.get_approximate_time(ru_titles_total_count),
-        "status": {
-            "isLoading": _status.is_loading,
-            "isFinished": _status.is_finished
-        }
-    })
-
-
-@app.route("/status", methods=['GET'])
+@app.route("/titles/status", methods=['GET'])
 def status():
     """
-    Возвращает статус, идет ли сейчас загрузка и т.д, инициализация состояния на фронте при обновлении
-    :return:
+        Get status of page titles downloading
     """
-    _status = titles_crawler.status
+
+    is_loading, is_finished, downloaded_count, total_count, approximate_time = titles_crawler.get_status()
 
     return jsonify({
-        "isLoading": _status.is_loading,
-        "isFinished": _status.is_finished
+        "isLoading": is_loading,
+        "isFinished": is_finished,
+        "downloadedCount": downloaded_count,
+        "totalCount": total_count,
+        "approximateTime": approximate_time
     })
 
 
