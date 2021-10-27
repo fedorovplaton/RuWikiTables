@@ -85,10 +85,10 @@ class TitlesCrawler:
             self.times_in_row.append(t2 - t1)
             self.downloaded_in_row += len(all_pages)
 
-    def __save(self, filename: str = 'titles'):
+    def __save(self, filename: str = 'titles/titles'):
         dump(self.titles, filename)
 
-    def __load(self, filename: str = 'titles'):
+    def __load(self, filename: str = 'titles/titles'):
         if os.path.exists(filename):
             self.titles = hook_up(filename)
         else:
@@ -126,6 +126,7 @@ class TitlesCrawler:
     def stop_download(self):
         if not self.is_loading:
             return
+        # Todo dump downloaded titles every time after stop process
 
         self.is_loading = False
         self.download_thread = Thread(target=self.__downloading)

@@ -1,6 +1,6 @@
 import os
 import threading
-from typing import Dict
+from typing import Dict, Tuple, List
 
 from my_types.Title import Title
 from my_types.TitlesDictionary import TitlesDictionary
@@ -19,13 +19,19 @@ class PagesCrawler:
         PageCrawler
     """
     titles_dict: TitlesDictionary = {}
-    only_pages_parsed: Dict[str, bool] = {}
+    titles_parsed: Dict[str, bool] = {}
     MAX_TASKS: int = 500
     thread: threading.Thread
+
+    average_speed: float = 0.0
+    downloaded_in_row: int = 0
+    times_in_row: List[float] = []
 
     is_loading: bool = False
     is_finished: bool = False
     is_stopping_tasks: bool = False
+
+    filename: str = None
 
     def __init__(self):
         self.thread = threading.Thread(target=self.__run_async_client)
@@ -52,10 +58,10 @@ class PagesCrawler:
                         if len(table_info_list) > 0:
                             dump_parsed_page(table_info_list, title)
 
-                        self.only_pages_parsed[str(str(title.page_id))] = True
+                        self.titles_parsed[str(str(title.page_id))] = True
                     except Exception as error:
-                        print('Parsing error: ', error) # ToDo log parsing errors
-                        self.only_pages_parsed[str(title.page_id)] = False
+                        print('Parsing error: ', error)  # ToDo log parsing errors
+                        self.titles_parsed[str(title.page_id)] = False
         except Exception as error:
             print('Network error:', str(error))
             raise error
@@ -65,7 +71,7 @@ class PagesCrawler:
             tasks = []
 
             for (page_id, title) in self.titles_dict.titles.items():
-                if str(page_id) not in self.only_pages_parsed:
+                if str(page_id) not in self.titles_parsed:
                     if len(tasks) >= self.MAX_TASKS:
                         break
 
@@ -99,38 +105,45 @@ class PagesCrawler:
 
             self.__save()
 
-    def __load_only_pages_parsed(self):
-        if os.path.exists('only_pages_parsed'):
-            self.only_pages_parsed = hook_up('only_pages_parsed')
+    def __load_titles_parsed(self, filename: str):
+        if os.path.exists(f'titles_parsed/{filename}_parsed'):
+            self.titles_parsed = hook_up(f'titles_parsed/{filename}_parsed')
         else:
-            self.only_pages_parsed = {}
+            self.titles_parsed = {}
 
-    def __load_titles(self):
-        if os.path.exists('titles'):
-            self.titles_dict = hook_up('titles')
+    def __load_titles(self, filename):
+        if os.path.exists(f'titles/{filename}'):
+            self.titles_dict = hook_up(f'titles/{filename}')
         else:
             self.titles_dict = TitlesDictionary({})
 
-    def __load(self):
-        if len(self.only_pages_parsed) == 0:
-            self.__load_only_pages_parsed()
+    def __load(self, filename):
+        if len(self.titles_parsed) == 0:
+            self.__load_titles_parsed(filename)
 
-        try:
-            if self.titles_dict.ap_continue is None:
-                self.__load_titles()
-        except Exception as error:
-            print('ap_continue error', error)
-            self.__load_titles()
+        if filename != self.filename:
+            self.__load_titles(filename)
+        else:
+            try:
+                if self.titles_dict.ap_continue is None:
+                    self.__load_titles(filename)
+            except Exception as error:
+                print('ap_continue error', error)
+                self.__load_titles(filename)
 
     def __save(self):
-        dump(self.only_pages_parsed, 'only_pages_parsed')
+        dump(self.titles_parsed, f'titles_parsed/{self.filename}_parsed')
 
-    def start(self):
-        if self.is_loading or self.is_finished or self.is_stopping_tasks:
-            return
+    def start(self, filename='titles'):
+        if filename == self.filename:
+            if self.is_loading or self.is_finished or self.is_stopping_tasks:
+                return
+        else:
+            self.titles_parsed = {}
 
-        self.__load()
+        self.__load(filename)
         self.is_loading = True
+        self.filename = filename
         self.thread.start()
 
     def stop(self):
@@ -140,3 +153,22 @@ class PagesCrawler:
         self.is_stopping_tasks = True
         self.is_loading = False
         self.thread = threading.Thread(target=self.__run_async_client)
+
+    def get_status(self) -> Tuple[bool, bool, int, int]:
+        """
+        :return: Tuple [
+            bool,  is loading
+            bool,  is process finished,
+            int,   downloaded titles count,
+            int,   total count for downloading
+        ]
+        """
+        try:
+            total_count = len(self.titles_dict.titles)
+        except Exception:
+            total_count = 0
+
+        return self.is_loading, \
+               self.is_finished, \
+               len(self.titles_parsed), \
+               total_count

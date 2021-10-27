@@ -5,6 +5,8 @@ import json
 
 from my_types.TableInfo import TableInfo
 from my_types.Title import Title
+from os import listdir
+from os.path import isfile, join
 
 
 def dump(obj: Any, filename: str) -> None:
@@ -72,3 +74,15 @@ def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
                 "row_count": table_info.row_count,
                 "columns": columns
             }, f, indent=4)
+
+
+def get_exist_title_filenamse() -> List[str]:
+    path = 'titles'
+
+    return [f for f in listdir(path) if isfile(join(path, f))]
+
+
+def delete_title_filenamse(filenames: List[str]):
+    for filename in filenames:
+        os.remove(f"titles/{filename}")
+        os.remove(f"titles_parsed/{filename}_parsed")

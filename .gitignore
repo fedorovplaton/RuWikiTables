@@ -127,8 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-titles
-all_titles
-titles2
+
+# Downloading meta info
+titles/
+titles_pased/
 data/
-only_pages_parsed
