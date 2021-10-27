@@ -1,18 +1,17 @@
+import json
 import os
 from typing import List
 
-from flask import Flask, jsonify
+import chardet
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from model.PagesCrawler import PagesCrawler
 from model.TitlesCrawler import TitlesCrawler
-from scripts.get_ru_titles_total_count import get_ru_titles_total_count
 
 # app - simplest Flask server, app.run() to run server
-from scripts.separate_titles import separate_titles
-from my_types.Title import Title
-from my_types.TitlesDictionary import TitlesDictionary
-from utils.io import dump
+from scripts.separate_titles import split_titles
+from utils.io import get_exist_title_filenamse, delete_title_filenamse
 
 app = Flask(__name__)
 CORS(app)
@@ -42,8 +41,7 @@ def start():
         "isLoading": is_loading,
         "isFinished": is_finished,
         "downloadedCount": downloaded_count,
-        "totalCount": total_count,
-        "approximateTime": approximate_time
+        "totalCount": total_count
     })
 
 
@@ -60,8 +58,7 @@ def stop():
         "isLoading": is_loading,
         "isFinished": is_finished,
         "downloadedCount": downloaded_count,
-        "totalCount": total_count,
-        "approximateTime": approximate_time
+        "totalCount": total_count
     })
 
 
@@ -77,62 +74,121 @@ def status():
         "isLoading": is_loading,
         "isFinished": is_finished,
         "downloadedCount": downloaded_count,
-        "totalCount": total_count,
-        "approximateTime": approximate_time
+        "totalCount": total_count
     })
 
 
-@app.route("/pages/start")
+@app.route("/pages/start", methods=['POST'])
 def pages_start():
     """
         Doc
     """
-    pages_crawler.start()
+    try:
+        charset = chardet.detect(request.data)['encoding']
+        data = json.loads(request.data.decode(charset))
+        filename = data['filename']
+        pages_crawler.start(filename)
+        is_loading, is_finished, downloaded_count, total_count = pages_crawler.get_status()
 
-    return 'start parsing...'
+        return jsonify({
+            "isLoading": is_loading,
+            "isFinished": is_finished,
+            "downloadedCount": downloaded_count,
+            "totalCount": total_count
+        })
+    except Exception as err:
+        print('pages/split', err)
+
+        return ({
+            "isLoading": False,
+            "isFinished": False,
+            "downloadedCount": 0,
+            "totalCount": 0
+        })
 
 
-@app.route("/pages/stop")
+@app.route("/pages/stop", methods=['POST'])
 def pages_stop():
     """
         Doc
     """
     pages_crawler.stop()
+    is_loading, is_finished, downloaded_count, total_count = pages_crawler.get_status()
 
-    return 'start stopping...'
+    return jsonify({
+        "isLoading": is_loading,
+        "isFinished": is_finished,
+        "downloadedCount": downloaded_count,
+        "totalCount": total_count
+    })
 
 
-@app.route("/pages/status")
+@app.route("/pages/status", methods=['GET'])
 def pages_status():
     """
         Doc
     """
 
+    is_loading, is_finished, downloaded_count, total_count = pages_crawler.get_status()
+
     return jsonify({
-        "isLoading": pages_crawler.is_loading,
-        "isFinished": pages_crawler.is_finished,
-        "isStoppingTasks": pages_crawler.is_stopping_tasks
+        "isLoading": is_loading,
+        "isFinished": is_finished,
+        "downloadedCount": downloaded_count,
+        "totalCount": total_count
     })
 
 
-@app.route("/split")
+@app.route("/pages/filenames", methods=['GET'])
+def get_filenames():
+    """
+        Get filenames with titles
+    """
+    filenames = get_exist_title_filenamse()
+
+    return jsonify({
+        "filenames": filenames
+    })
+
+
+@app.route("/pages/split", methods=['POST'])
 def split():
     """
         Doc
     """
-    sep: List[List[Title]] = list(separate_titles('titles', 8))
+    try:
+        charset = chardet.detect(request.data)['encoding']
+        data = json.loads(request.data.decode(charset))
+        filename = data['filename']
+        machineCount: int = data['machineCount']
+        splitNames: List[str] = data['splitNames']
+        split_titles(filename, machineCount, splitNames)
+    except Exception as err:
+        print('pages/split', err)
 
-    for i in range(len(sep)):
-        d = {}
+    filenames = get_exist_title_filenamse()
 
-        for title in sep[i]:
-            d[str(title.page_id)] = title
+    return jsonify({
+        "filenames": filenames
+    })
 
-        titles_dictionary = TitlesDictionary(titles=d, ap_continue=TitlesCrawler.__AP_CONTINUE_FINISHED_MARKER__)
+@app.route("/pages/delete/filenames", methods=['POST'])
+def delete_filenames():
+    try:
+        charset = chardet.detect(request.data)['encoding']
+        data = json.loads(request.data.decode(charset))
+        filenames = data['filenames']
+        if 'titles' in filenames:
+            filenames.remove('titles')
+        delete_title_filenamse(filenames)
+    except Exception as err:
+        print('pages/split', err)
 
-        dump(titles_dictionary, f'titles_part_{i}')
+    filenames = get_exist_title_filenamse()
 
-    return 'ok'
+    return jsonify({
+        "filenames": filenames
+    })
 
 
 if __name__ == '__main__':
