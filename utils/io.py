@@ -30,11 +30,11 @@ def hook_up(filename: str) -> Any:
     return pickle.load(file)
 
 
-def dump_parsed_page(table_info_list: List[TableInfo], title: Title) -> None:
+def dump_parsed_page(table_info_list: List[TableInfo], title: Title, dir_name='data') -> None:
     """
         Doc
     """
-    page_directory = os.path.join('data', str(title.page_id))
+    page_directory = os.path.join(dir_name, str(title.page_id))
 
     if not os.path.exists(page_directory):
         os.mkdir(page_directory)
