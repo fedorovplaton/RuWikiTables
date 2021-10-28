@@ -10,6 +10,7 @@ from model.PagesCrawler import PagesCrawler
 from model.TitlesCrawler import TitlesCrawler
 
 # app - simplest Flask server, app.run() to run server
+from my_types.Filter import Filter
 from scripts.separate_titles import split_titles
 from utils.io import get_exist_title_filenamse, delete_title_filenamse
 
@@ -172,6 +173,7 @@ def split():
         "filenames": filenames
     })
 
+
 @app.route("/pages/delete/filenames", methods=['POST'])
 def delete_filenames():
     try:
@@ -188,6 +190,27 @@ def delete_filenames():
 
     return jsonify({
         "filenames": filenames
+    })
+
+
+@app.route("/dataset/filter/set", methods=['POST'])
+def set_filter():
+    try:
+        charset = chardet.detect(request.data)['encoding']
+        data = json.loads(request.data.decode(charset))
+        # properties
+
+        ffilter = Filter(
+
+        )
+    except Exception as err:
+        print('/dataset/filter/set', err)
+
+    return jsonify({
+        "isLoading": False,
+        "isFinished": False,
+        "downloadedCount": 0,
+        "totalCount": 0
     })
 
 
