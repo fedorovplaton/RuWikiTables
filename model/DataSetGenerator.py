@@ -13,6 +13,7 @@ from my_types.Title import Title
 
 r_table_meta = re.compile("table_\d+_meta.json")
 r_table = re.compile("table_\d+.csv")
+rootdir = 'data'
 
 
 class DataSetGenerator:
@@ -22,6 +23,7 @@ class DataSetGenerator:
 
     def __init__(self, ffilter: Filter):
         self.ffilter = ffilter
+        self.status_counter = 0
 
     def __calculate_russian_ratio_in_column(self, column: pd.Series):
         df_str = column.to_string(na_rep="").replace(" ", "").replace("\n", "").replace(",", "")
@@ -34,13 +36,34 @@ class DataSetGenerator:
         return reduce(lambda count, l: count + len(l), ru_list, 0) / len(df_str)
 
     def __is_rus_cell(self, cell_value) -> bool:
-        if not cell_value:
-            return 0 < self.ffilter.min_rus_cel_ratio
-        ru_list = self.ffilter.russian_digit.findall(cell_value)
-        return reduce(lambda count, l: count + len(l), ru_list, 0) / len(cell_value) > self.ffilter.min_rus_cel_ratio
+        try:
+            if cell_value is None or cell_value != cell_value:
+                return 0 < self.ffilter.min_rus_cel_ratio
+            str_cell_value = str(cell_value)
+            ru_list = self.ffilter.russian_digit.findall(str_cell_value)
+            return reduce(lambda count, l: count + len(l), ru_list, 0) / len(
+                str_cell_value) > self.ffilter.min_rus_cel_ratio
+        except Exception as error:
+            print(error)
 
     def __filter_cell_data(self, cell_value) -> str:
         return self.ffilter.keep_only_pattern.sub('', str(cell_value))
+
+    def __check_black_list(self, black_list: str, title: str) -> bool:
+        title_words = re.split("\W+", title)
+        title_words = set(filter(lambda x: x != '', title_words))
+        if len([x for x in title_words if x in black_list]) > 0:
+            return True
+        else:
+            return False
+
+    def __check_white_list(self, black_list: str, title: str) -> bool:
+        title_words = re.split("\W+", title)
+        title_words = set(filter(lambda x: x != '', title_words))
+        if len([x for x in title_words if x in black_list]) != len(title_words):
+            return True
+        else:
+            return False
 
     def __filter_column(self, column_name: str, column: pd.Series):
         empty_count = int(column.isnull().sum())
@@ -59,9 +82,9 @@ class DataSetGenerator:
         rus_col_ratio = self.__calculate_russian_ratio_in_column(column)
         if self.ffilter.min_rus_col_ratio > rus_col_ratio:
             return None
-        if self.ffilter.use_black_list_column and column_name in self.ffilter.black_list_column:
+        if self.ffilter.use_black_list_column and self.__check_black_list(self.ffilter.black_list_column, column_name):
             return None
-        if self.ffilter.use_white_list_column and column_name not in self.ffilter.white_list_column:
+        if self.ffilter.use_white_list_column and self.__check_white_list(self.ffilter.white_list_column, column_name):
             return None
         if self.ffilter.is_keep_only:
             result = pd.Series([self.__filter_cell_data(x) for x in column])
@@ -86,9 +109,11 @@ class DataSetGenerator:
             empty_ratio = table.isnull().sum().sum() / result.shape[1] * result.shape[0]
             if self.ffilter.max_empty_ratio_table < empty_ratio:
                 return None
-            if self.ffilter.use_black_list_table and table_info.title in self.ffilter.black_list_table:
+            if self.ffilter.use_black_list_table and self.__check_black_list(self.ffilter.black_list_table,
+                                                                             table_info.title):
                 return None
-            if self.ffilter.use_white_list_table and table_info.title not in self.ffilter.white_list_table:
+            if self.ffilter.use_white_list_table and self.__check_white_list(self.ffilter.white_list_table,
+                                                                             table_info.title):
                 return None
             cells_rus_vector = [self.__is_rus_cell(item) for sublist in table for item in sublist]
             if self.ffilter.min_rus_cel_in_table_ratio > sum(cells_rus_vector) / len(cells_rus_vector):
@@ -111,12 +136,13 @@ class DataSetGenerator:
         return table_info
 
     def generate(self, dataset_name):
-        rootdir = 'data'
+        self.status_counter = 0
         dataset_dir_name = os.path.join('datasets', dataset_name)
         if os.path.exists(dataset_dir_name):
             return
         os.makedirs(dataset_dir_name)
         for subdir, dirs, files in os.walk(rootdir):
+            self.status_counter += 1
             table_meta_list = list(filter(r_table_meta.match, files))
             if len(table_meta_list) < 1:
                 continue
