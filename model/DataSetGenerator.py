@@ -11,6 +11,9 @@ from my_types.Filter import Filter
 from my_types.TableInfo import TableInfo
 from my_types.Title import Title
 
+r_table_meta = re.compile("table_\d+_meta.json")
+r_table = re.compile("table_\d+.csv")
+
 
 class DataSetGenerator:
     """
@@ -33,8 +36,8 @@ class DataSetGenerator:
     def __is_rus_cell(self, cell_value) -> bool:
         if not cell_value:
             return 0 < self.ffilter.min_rus_cel_ratio
-        ru_list = re.findall(self.ffilter.russian_digit, cell_value)
-        return reduce(lambda count, l: count + len(l), ru_list, 0) / len(cell_value) < self.ffilter.min_rus_cel_ratio
+        ru_list = self.ffilter.russian_digit.findall(cell_value)
+        return reduce(lambda count, l: count + len(l), ru_list, 0) / len(cell_value) > self.ffilter.min_rus_cel_ratio
 
     def __filter_cell_data(self, cell_value) -> str:
         return self.ffilter.keep_only_pattern.sub('', str(cell_value))
@@ -51,10 +54,10 @@ class DataSetGenerator:
             return None
         cells_rus_vector = [self.__is_rus_cell(x) for x in column]
         rus_cel_in_col_ratio = sum(cells_rus_vector) / len(cells_rus_vector)
-        if self.ffilter.min_rus_cel_in_col_ratio < rus_cel_in_col_ratio:
+        if self.ffilter.min_rus_cel_in_col_ratio > rus_cel_in_col_ratio:
             return None
         rus_col_ratio = self.__calculate_russian_ratio_in_column(column)
-        if self.ffilter.min_rus_col_ratio < rus_col_ratio:
+        if self.ffilter.min_rus_col_ratio > rus_col_ratio:
             return None
         if self.ffilter.use_black_list_column and column_name in self.ffilter.black_list_column:
             return None
@@ -71,7 +74,7 @@ class DataSetGenerator:
             table = table_info.table
             for column in table:
                 filtered_column = self.__filter_column(column, table[column])
-                if filtered_column:
+                if filtered_column is not None:
                     result[column] = filtered_column
             if self.ffilter.min_cols > result.shape[1] or result.shape[1] > self.ffilter.max_cols:
                 return None
@@ -91,7 +94,8 @@ class DataSetGenerator:
             if self.ffilter.min_rus_cel_in_table_ratio > sum(cells_rus_vector) / len(cells_rus_vector):
                 return None
             return TableInfo(table_info.previous_context, table_info.after_context, result)
-        except Exception:
+        except Exception as excep:
+            print(excep)
             return None
 
     def __load_table_info(self, table_path: str, table_meta_path: str):
@@ -108,30 +112,32 @@ class DataSetGenerator:
 
     def generate(self, dataset_name):
         rootdir = 'data'
-        if os.path.exists(dataset_name):
+        dataset_dir_name = os.path.join('datasets', dataset_name)
+        if os.path.exists(dataset_dir_name):
             return
-        os.makedirs(dataset_name)
+        os.makedirs(dataset_dir_name)
         for subdir, dirs, files in os.walk(rootdir):
-            r_table_meta = re.compile("table_\d+_meta.json")
-            r_table = re.compile("table_\d+.csv")
             table_meta_list = list(filter(r_table_meta.match, files))
             if len(table_meta_list) < 1:
                 continue
-            table_meta_path = os.path.join(subdir, table_meta_list[0])
             if len(table_meta_list) < 1:
                 continue
             table_list = list(filter(r_table.match, files))
             if len(table_list) < 1:
                 continue
-            table_path = os.path.join(subdir, table_list[0])
             page_list = list(filter(lambda x: x == "page_meta.json", files))
             if len(page_list) < 1:
                 continue
             page_path = os.path.join(subdir, page_list[0])
-
-            table_info_list = []
-            filtered_table_info = self.__filter_table(table_meta)
-            if filtered_table_info:
-                table_info_list.append(filtered_table_info)
-            if len(table_info_list) > 0:
-                utils.io.dump_parsed_page(table_info_list, title, dataset_name)
+            title = Title(None, None)
+            with open(page_path, 'r') as file:
+                title_json = json.load(file)
+                title.title = title_json["title"]
+                title.page_id = title_json["page_id"]
+            table_info_list = list(
+                map(lambda x, y: self.__load_table_info(os.path.join(subdir, x), os.path.join(subdir, y)), table_list,
+                    table_meta_list))
+            filtered_table_info = [self.__filter_table(x) for x in table_info_list]
+            filtered_table_info = list(filter(lambda x: x is not None, filtered_table_info))
+            if len(filtered_table_info) > 0:
+                utils.io.dump_parsed_page(table_info_list, title, dataset_dir_name)

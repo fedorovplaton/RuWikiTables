@@ -3,4 +3,4 @@ from my_types.Filter import Filter
 
 ffilter = Filter()
 generator = DataSetGenerator(ffilter)
-generator.generate()
+generator.generate('test')
