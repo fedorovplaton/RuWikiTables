@@ -16,7 +16,7 @@ class Filter:
                  min_rus_cel_in_table_ratio: int = 0,
                  min_rus_cel_ratio: int = 0,
                  min_rus_cel_in_col_ratio: int = 0,
-                 not_rus_symbols_pattern: str = "!([А-Яа-яЁё]+|\d+)",
+                 not_rus_symbols_pattern: str = "^([А-Яа-яЁё]+|\d+)",
                  keep_only_pattern: str = "[А-Яа-яЁё]+|\d+",
                  is_keep_only: bool = False,
                  use_white_list_table: bool = False,
@@ -51,7 +51,7 @@ class Filter:
         :param black_list_table: black list of table headers
         :param black_list_column: black list of column headers
         :param white_list_column: white list of column headers
-        :param min_rus_col_ratio: skip column with russian ratio more than expected
+        :param min_rus_col_ratio: skip column with russian ratio less than expected
         :param use_white_list_table: need to filter white_list_table
         :param use_black_list_table: need to filter use_black_list_table
         :param use_black_list_column: need to filter use_black_list_column

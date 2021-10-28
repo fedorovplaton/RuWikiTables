@@ -6,18 +6,21 @@ import chardet
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from model.DataSetGenerator import DataSetGenerator
 from model.PagesCrawler import PagesCrawler
 from model.TitlesCrawler import TitlesCrawler
 
 # app - simplest Flask server, app.run() to run server
 from my_types.Filter import Filter
 from scripts.separate_titles import split_titles
-from utils.io import get_exist_title_filenamse, delete_title_filenamse
+from utils.io import get_exist_title_filenamse, delete_title_filenamse, hook_up
 
 app = Flask(__name__)
 CORS(app)
 titles_crawler = TitlesCrawler()
 pages_crawler = PagesCrawler()
+dataset_generator = DataSetGenerator(Filter(), "")
+titles_path = 'titles/titles'
 
 
 @app.route("/", methods=['GET'])
@@ -195,22 +198,23 @@ def delete_filenames():
 
 @app.route("/dataset/filter/set", methods=['POST'])
 def set_filter():
+    total_count = 0
     try:
         charset = chardet.detect(request.data)['encoding']
         data = json.loads(request.data.decode(charset))
         # properties
 
-        ffilter = Filter(
-
-        )
+        ffilter = Filter()
+        dataset_generator = DataSetGenerator(ffilter, 'test_dataset_name')
+        total_count = len(hook_up(titles_path).titles)
     except Exception as err:
         print('/dataset/filter/set', err)
 
     return jsonify({
-        "isLoading": False,
-        "isFinished": False,
-        "downloadedCount": 0,
-        "totalCount": 0
+        "isLoading": dataset_generator.is_loading,
+        "isFinished": dataset_generator.is_finished,
+        "downloadedCount": dataset_generator.status_counter,
+        "totalCount": total_count
     })
 
 

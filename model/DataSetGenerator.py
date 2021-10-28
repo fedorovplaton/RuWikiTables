@@ -2,6 +2,7 @@ import json
 import os
 import re
 from functools import reduce
+from threading import Thread
 
 import pandas as pd
 from pandas import DataFrame
@@ -21,9 +22,26 @@ class DataSetGenerator:
         DataSetGenerator
     """
 
-    def __init__(self, ffilter: Filter):
+    def __init__(self, ffilter: Filter, dataset_name):
         self.ffilter = ffilter
+        self.download_thread = Thread(target=self.generate, args=(dataset_name,))
         self.status_counter = 0
+        self.is_loading = False
+        self.is_finished = False
+
+    def start(self):
+        if self.is_loading:
+            return
+        self.is_loading = True
+        self.is_finished = False
+        self.download_thread.start()
+
+    def stop(self):
+        if not self.is_loading:
+            return
+
+        self.is_loading = False
+        # self.download_thread = Thread(target=self.generate(dataset_name))
 
     def __calculate_russian_ratio_in_column(self, column: pd.Series):
         df_str = column.to_string(na_rep="").replace(" ", "").replace("\n", "").replace(",", "")
@@ -167,3 +185,5 @@ class DataSetGenerator:
             filtered_table_info = list(filter(lambda x: x is not None, filtered_table_info))
             if len(filtered_table_info) > 0:
                 utils.io.dump_parsed_page(table_info_list, title, dataset_dir_name)
+        self.is_finished = True
+        self.is_loading = False
