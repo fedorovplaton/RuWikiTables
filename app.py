@@ -234,8 +234,8 @@ def get_filter():  # ToDo
     return jsonify({})
 
 
-@app.route("/dataset/generate/start", methods=['POST'])
-def get_filter():  # ToDo
+@app.route("/dataset/filter/start", methods=['POST'])
+def filter_start():  # ToDo
     """
         Start generate dataset
         :return:
@@ -243,8 +243,8 @@ def get_filter():  # ToDo
     return jsonify({})
 
 
-@app.route("/dataset/generate/stop", methods=['POST'])
-def get_filter():  # ToDo Delete if there is no stop function
+@app.route("/dataset/filter/stop", methods=['POST'])
+def filter_stop():  # ToDo Delete if there is no stop function
     """
         Stop generate dataset
         :return:
@@ -252,8 +252,8 @@ def get_filter():  # ToDo Delete if there is no stop function
     return jsonify({})
 
 
-@app.route("/dataset/generate/status", methods=['GET'])
-def get_filter():  # ToDo
+@app.route("/dataset/filter/status", methods=['GET'])
+def get_filter_status():  # ToDo
     """
         Return dataset generating status
         :return:
