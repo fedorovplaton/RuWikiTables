@@ -19,8 +19,9 @@ app = Flask(__name__)
 CORS(app)
 titles_crawler = TitlesCrawler()
 pages_crawler = PagesCrawler()
-dataset_generator = DataSetGenerator(Filter(), "")
+dataset_generator = DataSetGenerator(Filter(), "default")
 titles_path = 'titles/titles'
+pages_count = 0
 
 
 @app.route("/", methods=['GET'])
@@ -202,15 +203,41 @@ def set_filter():  # ToDo *Do nothing if generating now*
         Set filter properties. If dataset already generating, then do nothing. Always return Status
         :return:
     """
-    total_count = 0
+    global dataset_generator
     try:
         charset = chardet.detect(request.data)['encoding']
         data = json.loads(request.data.decode(charset))
         # properties
 
-        ffilter = Filter()
-        dataset_generator = DataSetGenerator(ffilter, 'test_dataset_name')
-        total_count = len(hook_up(titles_path).titles)
+        ffilter = Filter(
+            min_cols=data['min_cols'],
+            max_cols=data['max_cols'],
+            min_rows=data['min_rows'],
+            max_rows=data['max_rows'],
+            min_empty=data['min_empty'],
+            max_empty=data['max_empty'],
+            min_rus_ratio=data['min_rus_ratio'],
+            max_rus_ratio=data['max_rus_ratio'],
+            max_empty_ratio_table=data['max_empty_ratio_table'],
+            max_empty_ratio_column=data['max_empty_ratio_column'],
+            min_rus_cel_in_table_ratio=data['min_rus_cel_in_table_ratio'],
+            min_rus_cel_ratio=data['min_rus_cel_ratio'],
+            min_rus_cel_in_col_ratio=data['min_rus_cel_in_col_ratio'],
+            not_rus_symbols_pattern=data['not_rus_symbols_pattern'],
+            keep_only_pattern=data['keep_only_pattern'],
+            is_keep_only=data['is_keep_only'],
+            use_white_list_table=data['use_white_list_table'],
+            use_black_list_table=data['use_black_list_table'],
+            use_black_list_column=data['use_black_list_column'],
+            use_white_list_column=data['use_white_list_column'],
+            white_list_table=data['white_list_table'],
+            black_list_table=data['black_list_table'],
+            black_list_column=data['black_list_column'],
+            white_list_column=data['white_list_column'],
+            min_rus_col_ratio=data['min_rus_col_ratio'],
+            skip_only_numbers=data['skip_only_numbers'],
+        )
+        dataset_generator = DataSetGenerator(ffilter, data['dataset_name'])
     except Exception as err:
         print('/dataset/filter/set', err)
 
@@ -218,7 +245,7 @@ def set_filter():  # ToDo *Do nothing if generating now*
         "isLoading": dataset_generator.is_loading,
         "isFinished": dataset_generator.is_finished,
         "downloadedCount": dataset_generator.status_counter,
-        "totalCount": total_count
+        "totalCount": pages_count
     })
 
 
@@ -235,12 +262,18 @@ def get_filter():  # ToDo
 
 
 @app.route("/dataset/filter/start", methods=['POST'])
-def filter_start():  # ToDo
+def filter_start():
     """
         Start generate dataset
         :return:
     """
-    return jsonify({})
+    dataset_generator.start()
+    return jsonify({
+        "isLoading": dataset_generator.is_loading,
+        "isFinished": dataset_generator.is_finished,
+        "downloadedCount": dataset_generator.status_counter,
+        "totalCount": pages_count
+    })
 
 
 @app.route("/dataset/filter/stop", methods=['POST'])
@@ -253,16 +286,17 @@ def filter_stop():  # ToDo Delete if there is no stop function
 
 
 @app.route("/dataset/filter/status", methods=['GET'])
-def get_filter_status():  # ToDo
+def get_filter_status():
     """
         Return dataset generating status
         :return:
     """
+
     return jsonify({
-        "isLoading": False,
-        "isFinished": False,
-        "downloadedCount": 0,
-        "totalCount": 0
+        "isLoading": dataset_generator.is_loading,
+        "isFinished": dataset_generator.is_finished,
+        "downloadedCount": dataset_generator.status_counter,
+        "totalCount": pages_count
     })
 
 
@@ -270,8 +304,11 @@ if __name__ == '__main__':
     if not os.path.exists('data'):
         os.mkdir('data')
     if not os.path.exists('titles'):
-        os.mkdir('data')
+        os.mkdir('titles')
     if not os.path.exists('titles_parsed'):
-        os.mkdir('data')
+        os.mkdir('titles_parsed')
+    if not os.path.exists('datasets'):
+        os.mkdir('datasets')
+    pages_count = len([name for name in os.listdir('data') if os.path.isdir(name)])
 
     app.run(host='0.0.0.0')

@@ -184,6 +184,6 @@ class DataSetGenerator:
             filtered_table_info = [self.__filter_table(x) for x in table_info_list]
             filtered_table_info = list(filter(lambda x: x is not None, filtered_table_info))
             if len(filtered_table_info) > 0:
-                utils.io.dump_parsed_page(table_info_list, title, dataset_dir_name)
+                utils.io.dump_parsed_page(filtered_table_info, title, dataset_dir_name)
         self.is_finished = True
         self.is_loading = False
