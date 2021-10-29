@@ -197,7 +197,11 @@ def delete_filenames():
 
 
 @app.route("/dataset/filter/set", methods=['POST'])
-def set_filter():
+def set_filter():  # ToDo *Do nothing if generating now*
+    """
+        Set filter properties. If dataset already generating, then do nothing. Always return Status
+        :return:
+    """
     total_count = 0
     try:
         charset = chardet.detect(request.data)['encoding']
@@ -218,8 +222,56 @@ def set_filter():
     })
 
 
+@app.route("/dataset/filter/get", methods=['GET'])
+def get_filter():  # ToDo
+    """
+        Returns current filter properties. By default returns initial filter properties.
+        If black/white lists were set by files, then return fields:
+        {black_list_table_filename: str, ..., black_list_table: [], ...}, else return:
+        {black_list_table_filename: '', ..., black_list_table: str[], ...}
+        :return:
+    """
+    return jsonify({})
+
+
+@app.route("/dataset/filter/start", methods=['POST'])
+def filter_start():  # ToDo
+    """
+        Start generate dataset
+        :return:
+    """
+    return jsonify({})
+
+
+@app.route("/dataset/filter/stop", methods=['POST'])
+def filter_stop():  # ToDo Delete if there is no stop function
+    """
+        Stop generate dataset
+        :return:
+    """
+    return jsonify({})
+
+
+@app.route("/dataset/filter/status", methods=['GET'])
+def get_filter_status():  # ToDo
+    """
+        Return dataset generating status
+        :return:
+    """
+    return jsonify({
+        "isLoading": False,
+        "isFinished": False,
+        "downloadedCount": 0,
+        "totalCount": 0
+    })
+
+
 if __name__ == '__main__':
     if not os.path.exists('data'):
+        os.mkdir('data')
+    if not os.path.exists('titles'):
+        os.mkdir('data')
+    if not os.path.exists('titles_parsed'):
         os.mkdir('data')
 
     app.run(host='0.0.0.0')
