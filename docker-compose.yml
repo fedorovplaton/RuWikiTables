@@ -1,0 +1,9 @@
+version: '2.4'
+services:
+  backend:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - "RuWikiTables/titles:/ru_wiki_tables/titles"
+      - "RuWikiTables/datasets:/ru_wiki_tables/datasets"
